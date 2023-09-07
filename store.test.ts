@@ -18,4 +18,10 @@ describe("Store class", () => {
     const value = await store.get("user.address.street");
     expect(value).toBe("Main St");
   });
+
+  it("should return all entries", async () => {
+    await store.set("user.age", 30);
+    const entries = await store.entries();
+    expect(entries).toEqual({ user: { age: 30 } });
+  });
 });

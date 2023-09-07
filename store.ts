@@ -2,45 +2,65 @@ type StoreData = {
   [key: string]: any;
 };
 
-class Store {
+export class Store {
   private data: StoreData = {};
+  private isLocked: boolean = false;
 
-  // Helper method to get a reference to a nested object using dot notation.
-  private getRef(obj: StoreData, key: string, createIfMissing = false): any {
-    let ref = obj;
+  private lock() {
+    this.isLocked = true;
+  }
+
+  private unlock() {
+    this.isLocked = false;
+  }
+
+  private async waitForUnlock() {
+    while (this.isLocked) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }
+
+  public async set(key: string, value: any) {
+    await this.waitForUnlock();
+    this.lock();
+
+    if (!this.isSerializable(value)) {
+      this.unlock();
+      throw new Error("Provided value is not serializable.");
+    }
+
     const keys = key.split(".");
-    for (let i = 0; i < keys.length; i++) {
-      if (!ref[keys[i]]) {
-        if (createIfMissing) {
-          ref[keys[i]] = {};
-        } else {
-          return undefined;
-        }
+    let current = this.data;
+
+    while (keys.length > 1) {
+      const k = keys.shift()!;
+      if (!current[k]) {
+        current[k] = {};
       }
-      ref = ref[keys[i]];
+      current = current[k];
     }
-    return ref;
+    current[keys[0]] = value;
+
+    this.unlock();
   }
 
-  set(key: string, value: any): boolean {
-    if (this.isSerializable(value)) {
-      const keys = key.split(".");
-      const lastKey = keys.pop();
-      const ref = this.getRef(this.data, keys.join("."), true);
-      if (!lastKey) {
-        throw new Error("Invalid key provided.");
+  public async get(key: string): Promise<any> {
+    await this.waitForUnlock();
+
+    const keys = key.split(".");
+    let current = this.data;
+
+    for (const k of keys) {
+      if (current[k] === undefined) {
+        return undefined;
       }
-      ref[lastKey] = value;
-      return true;
+      current = current[k];
     }
-    return false;
+    return current;
   }
 
-  get(key: string): any {
-    return this.getRef(this.data, key);
-  }
-
-  list(): StoreData {
+  public async entries(): Promise<StoreData> {
+    await this.waitForUnlock();
     return this.data;
   }
 
@@ -48,14 +68,13 @@ class Store {
     try {
       JSON.stringify(value);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
 
-  toJSON(): string {
+  public toJSON(): string {
     return JSON.stringify(this.data);
   }
 }
-
 export default Store;
