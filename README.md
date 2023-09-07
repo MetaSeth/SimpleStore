@@ -22,13 +22,13 @@ Ensure you have [Node.js](https://nodejs.org/) and [npm](https://www.npmjs.com/)
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/MetaSeth/SimpleStore/
 ```
 
 2. Navigate to the repository directory:
 
 ```bash
-cd <repository-name>
+cd SimpleStore
 ```
 
 3. Install the dependencies:
