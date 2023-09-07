@@ -57,10 +57,9 @@ You can also import the `Store` class into your TypeScript or JavaScript project
 
 For real-world applications, the following enhancements can be considered:
 
-1. Concurrency Handling with asynchronous operations.
-2. Implement data size limits.
-3. Introduce data expiration with TTL (Time-to-live).
-4. Schema validation for stored data.
+1. Implement data size limits.
+2. Introduce data expiration with TTL (Time-to-live).
+3. Schema validation for stored data.
 
 ## Contribution
 
