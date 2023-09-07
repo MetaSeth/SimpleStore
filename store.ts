@@ -2,65 +2,45 @@ type StoreData = {
   [key: string]: any;
 };
 
-export class Store {
+class Store {
   private data: StoreData = {};
-  private isLocked: boolean = false;
 
-  private lock() {
-    this.isLocked = true;
-  }
-
-  private unlock() {
-    this.isLocked = false;
-  }
-
-  private async waitForUnlock() {
-    while (this.isLocked) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-  }
-
-  public async set(key: string, value: any) {
-    await this.waitForUnlock();
-    this.lock();
-
-    if (!this.isSerializable(value)) {
-      this.unlock();
-      throw new Error("Provided value is not serializable.");
-    }
-
+  // Helper method to get a reference to a nested object using dot notation.
+  private getRef(obj: StoreData, key: string, createIfMissing = false): any {
+    let ref = obj;
     const keys = key.split(".");
-    let current = this.data;
-
-    while (keys.length > 1) {
-      const k = keys.shift()!;
-      if (!current[k]) {
-        current[k] = {};
+    for (let i = 0; i < keys.length; i++) {
+      if (!ref[keys[i]]) {
+        if (createIfMissing) {
+          ref[keys[i]] = {};
+        } else {
+          return undefined;
+        }
       }
-      current = current[k];
+      ref = ref[keys[i]];
     }
-    current[keys[0]] = value;
-
-    this.unlock();
+    return ref;
   }
 
-  public async get(key: string): Promise<any> {
-    await this.waitForUnlock();
-
-    const keys = key.split(".");
-    let current = this.data;
-
-    for (const k of keys) {
-      if (current[k] === undefined) {
-        return undefined;
+  set(key: string, value: any): boolean {
+    if (this.isSerializable(value)) {
+      const keys = key.split(".");
+      const lastKey = keys.pop();
+      const ref = this.getRef(this.data, keys.join("."), true);
+      if (!lastKey) {
+        throw new Error("Invalid key provided.");
       }
-      current = current[k];
+      ref[lastKey] = value;
+      return true;
     }
-    return current;
+    return false;
   }
 
-  public async entries(): Promise<StoreData> {
-    await this.waitForUnlock();
+  get(key: string): any {
+    return this.getRef(this.data, key);
+  }
+
+  list(): StoreData {
     return this.data;
   }
 
@@ -68,13 +48,14 @@ export class Store {
     try {
       JSON.stringify(value);
       return true;
-    } catch {
+    } catch (error) {
       return false;
     }
   }
 
-  public toJSON(): string {
+  toJSON(): string {
     return JSON.stringify(this.data);
   }
 }
+
 export default Store;
